@@ -3,50 +3,50 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Chat App 💬</title>
+  <title>Chat App </title>
   <link rel="stylesheet" href="style.css" />
-</head>
 
-<body class="light">
-  <div class="chat-container">
-    <!-- Sidebar -->
-    <aside class="sidebar">
-      <header>
-        <h2>Chats</h2>
-        <button id="darkModeToggle">🌙</button>
-      </header>
-      <input type="text" id="searchUser" placeholder="Search users..." />
-      <ul id="usersList"></ul>
-      <button id="logoutBtn">Logout</button>
-    </aside>
-
-    <!-- Main Chat -->
-    <main class="chat-main">
-      <header class="chat-header">
-        <img id="chatUserImg" src="https://i.pravatar.cc/50" alt="User" />
-        <div>
-          <h3 id="chatUserName">Select a user</h3>
-          <p id="chatUserStatus">Offline</p>
-        </div>
-      </header>
-
-      <div id="messages" class="messages"></div>
-
-      <form id="messageForm" class="message-form">
-        <input type="file" id="imageInput" hidden accept="image/*" />
-        <button type="button" id="imageBtn">📷</button>
-        <input type="text" id="messageInput" placeholder="Type a message..." required />
-        <button type="submit">Send</button>
-      </form>
-    </main>
-  </div>
-
-  <!-- Firebase SDKs -->
+  <!-- Firebase (Compat v10.12.5) -->
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-database-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-storage-compat.js"></script>
+</head>
+
+<body class="dark">
+  <div class="chat-container">
+    <!-- Sidebar -->
+    <div class="sidebar">
+      <div class="sidebar-header">
+        <h3>Chats</h3>
+        <button id="logoutBtn">Logout</button>
+      </div>
+      <input type="text" id="searchUser" placeholder="Search users..." />
+      <ul id="usersList"></ul>
+    </div>
+
+    <!-- Chat Window -->
+    <div class="chat-window">
+      <div class="chat-header">
+        <img id="chatUserPhoto" src="images/default-avatar.png" class="avatar" />
+        <div>
+          <h3 id="chatUserName">Select a user</h3>
+          <p id="chatUserStatus">Offline</p>
+        </div>
+        <button id="darkModeToggle">🌙</button>
+      </div>
+
+      <div class="chat-messages" id="messages"></div>
+
+      <div class="chat-input">
+        <input type="text" id="messageInput" placeholder="Type a message..." />
+        <input type="file" id="fileInput" accept="image/*" hidden />
+        <button id="uploadBtn">📎</button>
+        <button id="sendBtn">Send</button>
+      </div>
+    </div>
+  </div>
 
   <script src="firebase-config.js"></script>
   <script src="app.js"></script>
