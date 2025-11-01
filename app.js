@@ -169,3 +169,20 @@ logoutBtn.addEventListener("click", async () => {
 darkModeToggle.addEventListener("click", () => {
   document.body.classList.toggle("dark");
 });
+
+// Sidebar toggle for mobile
+const menuToggle = document.getElementById("menuToggle");
+const sidebar = document.querySelector(".sidebar");
+
+menuToggle.addEventListener("click", () => {
+  sidebar.classList.toggle("active");
+});
+
+// Close sidebar when clicking outside (mobile only)
+document.addEventListener("click", (e) => {
+  if (window.innerWidth <= 768) {
+    if (!sidebar.contains(e.target) && !menuToggle.contains(e.target)) {
+      sidebar.classList.remove("active");
+    }
+  }
+});
