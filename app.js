@@ -28,17 +28,15 @@ auth.onAuthStateChanged(async (user) => {
       name: user.displayName || user.email.split("@")[0],
       email: user.email,
       photoURL: user.photoURL || "images/default-avatar.png",
-      online: true,
       lastActive: firebase.firestore.FieldValue.serverTimestamp(),
     });
   } else {
-    await userRef.update({ online: true });
+    await userRef.update({ lastActive: firebase.firestore.FieldValue.serverTimestamp() });
   }
 
   // Mark offline on tab close
   window.addEventListener("beforeunload", async () => {
     await userRef.update({
-      online: false,
       lastActive: firebase.firestore.FieldValue.serverTimestamp(),
     });
   });
@@ -56,7 +54,6 @@ auth.onAuthStateChanged(async (user) => {
         <img src="${u.photoURL}" class="avatar" />
         <div>
           <p>${u.name}</p>
-          <small>${u.online ? "🟢 Online" : "⚫ Offline"}</small>
         </div>
       `;
       li.addEventListener("click", () => openChat(u));
@@ -70,7 +67,6 @@ async function openChat(user) {
   selectedUser = user;
   document.getElementById("chatUserName").textContent = user.name;
   document.getElementById("chatUserPhoto").src = user.photoURL;
-  document.getElementById("chatUserStatus").textContent = user.online ? "Online" : "Offline";
   messagesDiv.innerHTML = "";
 
   // Stop old listener
@@ -82,30 +78,29 @@ async function openChat(user) {
   unsubscribeMessages = messagesRef.onSnapshot((snapshot) => {
     messagesDiv.innerHTML = "";
     snapshot.forEach((doc) => {
-  const msg = doc.data();
-  const div = document.createElement("div");
-  div.classList.add("message", msg.sender === auth.currentUser.uid ? "sent" : "received");
+      const msg = doc.data();
+      const div = document.createElement("div");
+      div.classList.add("message", msg.sender === auth.currentUser.uid ? "sent" : "received");
 
-  const time = msg.timestamp
-    ? new Date(msg.timestamp.toDate()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-    : '';
+      const time = msg.timestamp
+        ? new Date(msg.timestamp.toDate()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        : '';
 
-  if (msg.type === "image") {
-    div.innerHTML = `
-      <div class="msg-content"><img src="${msg.content}" class="chat-image" /></div>
-      <small class="msg-time">${time}</small>
-    `;
-  } else {
-    div.innerHTML = `
-      <div class="msg-content">${msg.content}</div>
-      <small class="msg-time">${time}</small>
-    `;
-  }
+      if (msg.type === "image") {
+        div.innerHTML = `
+          <div class="msg-content"><img src="${msg.content}" class="chat-image" /></div>
+          <small class="msg-time">${time}</small>
+        `;
+      } else {
+        div.innerHTML = `
+          <div class="msg-content">${msg.content}</div>
+          <small class="msg-time">${time}</small>
+        `;
+      }
 
-  messagesDiv.appendChild(div);
-  messagesDiv.scrollTop = messagesDiv.scrollHeight;
-});
-
+      messagesDiv.appendChild(div);
+      messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    });
   });
 }
 
@@ -132,6 +127,14 @@ sendBtn.addEventListener("click", async () => {
   });
 
   messageInput.value = "";
+});
+
+// --- ✅ Send message on pressing Enter ---
+messageInput.addEventListener("keypress", (e) => {
+  if (e.key === "Enter") {
+    e.preventDefault(); // Prevent newline
+    sendBtn.click();    // Trigger send
+  }
 });
 
 // --- Send image file ---
