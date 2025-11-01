@@ -1,52 +1,53 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>OnlineChat - Chat</title>
-  <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Chat App 💬</title>
+  <link rel="stylesheet" href="style.css" />
 </head>
-<body class="light">
 
+<body class="light">
   <div class="chat-container">
     <!-- Sidebar -->
     <aside class="sidebar">
-      <input type="text" placeholder="Search users..." id="searchUser">
-      <h3>Pinned Chats</h3>
-      <ul id="userList">
-        <li>Test User 1 <span class="status online"></span></li>
-        <li>Test User 2 <span class="status offline"></span></li>
-      </ul>
-      <button id="logoutBtn" class="logout">Logout</button>
-      <button id="toggleThemeBtn">Toggle Dark Mode</button>
+      <header>
+        <h2>Chats</h2>
+        <button id="darkModeToggle">🌙</button>
+      </header>
+      <input type="text" id="searchUser" placeholder="Search users..." />
+      <ul id="usersList"></ul>
+      <button id="logoutBtn">Logout</button>
     </aside>
 
-    <!-- Main chat area -->
-    <main class="chat-window">
-      <header id="chatHeader">Chatting with <span id="chatUser">Test User</span></header>
+    <!-- Main Chat -->
+    <main class="chat-main">
+      <header class="chat-header">
+        <img id="chatUserImg" src="https://i.pravatar.cc/50" alt="User" />
+        <div>
+          <h3 id="chatUserName">Select a user</h3>
+          <p id="chatUserStatus">Offline</p>
+        </div>
+      </header>
 
-      <div id="messages" class="messages">
-        <div class="message sent">Hey there 👋</div>
-        <div class="message received">Hello! How are you?</div>
-      </div>
+      <div id="messages" class="messages"></div>
 
-      <form id="messageForm" class="message-input" onsubmit="return false;">
-        <input type="text" id="messageInput" placeholder="Type a message...">
-        <input type="file" id="fileInput" accept="image/*" hidden>
-        <button type="button" id="fileBtn">📎</button>
-        <button type="submit" id="sendBtn">Send</button>
+      <form id="messageForm" class="message-form">
+        <input type="file" id="imageInput" hidden accept="image/*" />
+        <button type="button" id="imageBtn">📷</button>
+        <input type="text" id="messageInput" placeholder="Type a message..." required />
+        <button type="submit">Send</button>
       </form>
     </main>
   </div>
 
   <!-- Firebase SDKs -->
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-storage-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-database-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-storage-compat.js"></script>
 
-  <!-- Project scripts -->
   <script src="firebase-config.js"></script>
   <script src="app.js"></script>
 </body>
