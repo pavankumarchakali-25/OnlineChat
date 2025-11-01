@@ -32,20 +32,30 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  // Signup
-  signupForm.addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const email = document.getElementById("signupEmail").value;
-    const password = document.getElementById("signupPassword").value;
+ signupForm.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const email = signupEmail.value;
+  const password = signupPassword.value;
 
-    try {
-      await auth.createUserWithEmailAndPassword(email, password);
-      console.log("✅ Signup successful");
-      window.location.href = "chat.html";
-    } catch (err) {
-      alert("Signup failed: " + err.message);
-    }
-  });
+  try {
+    await auth.createUserWithEmailAndPassword(email, password);
+
+    // ✅ show popup message
+    showPopup("✅ Account created successfully! Try logging in.");
+
+    // clear form
+    signupEmail.value = "";
+    signupPassword.value = "";
+
+    // switch to login tab automatically
+    signupForm.classList.add("hidden");
+    loginForm.classList.remove("hidden");
+    document.getElementById("loginTab").classList.add("active");
+    document.getElementById("signupTab").classList.remove("active");
+  } catch (error) {
+    showPopup("❌ " + error.message);
+  }
+});
 
   // Google login
   googleLogin.addEventListener("click", async () => {
@@ -59,3 +69,24 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 });
+
+function showPopup(message, type = "success") {
+  const popup = document.createElement("div");
+  popup.className = `popup ${type}`;
+  popup.textContent = message;
+  document.body.appendChild(popup);
+
+  // slide in
+  setTimeout(() => popup.classList.add("show"), 10);
+
+  // fade out
+  setTimeout(() => {
+    popup.classList.remove("show");
+    setTimeout(() => popup.remove(), 300);
+  }, 3000);
+}
+
+
+
+
+
