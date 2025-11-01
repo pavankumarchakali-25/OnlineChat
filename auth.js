@@ -1,12 +1,11 @@
 document.addEventListener("DOMContentLoaded", () => {
   console.log("✅ DOM loaded, attaching listeners");
 
-  // Forms
   const loginForm = document.getElementById("loginForm");
   const signupForm = document.getElementById("signupForm");
   const googleLogin = document.getElementById("googleLogin");
 
-  // Switch between login/signup
+  // --- Switch Tabs ---
   document.getElementById("loginTab").addEventListener("click", () => {
     loginForm.classList.remove("hidden");
     signupForm.classList.add("hidden");
@@ -17,47 +16,52 @@ document.addEventListener("DOMContentLoaded", () => {
     loginForm.classList.add("hidden");
   });
 
-  // Email login
+  // --- LOGIN ---
   loginForm.addEventListener("submit", async (e) => {
     e.preventDefault();
-    const email = document.getElementById("loginEmail").value;
-    const password = document.getElementById("loginPassword").value;
+    const email = document.getElementById("loginEmail").value.trim();
+    const password = document.getElementById("loginPassword").value.trim();
 
     try {
-      await auth.signInWithEmailAndPassword(email, password);
-      console.log("✅ Login successful");
-      window.location.href = "chat.html";
+      const userCredential = await auth.signInWithEmailAndPassword(email, password);
+      console.log("✅ Login successful:", userCredential.user.email);
+      showPopup("✅ Login successful!", "success");
+      setTimeout(() => window.location.href = "chat.html", 1000);
     } catch (err) {
-      alert("Login failed: " + err.message);
+      console.error("❌ Login failed:", err);
+      let message = "Login failed. Please check your email and password.";
+
+      if (err.code === "auth/user-not-found") message = "No user found with that email.";
+      else if (err.code === "auth/wrong-password") message = "Incorrect password.";
+      else if (err.code === "auth/invalid-email") message = "Invalid email format.";
+
+      showPopup(message, "error");
     }
   });
 
- signupForm.addEventListener("submit", async (e) => {
-  e.preventDefault();
-  const email = signupEmail.value;
-  const password = signupPassword.value;
+  // --- SIGNUP ---
+  signupForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const email = signupEmail.value.trim();
+    const password = signupPassword.value.trim();
 
-  try {
-    await auth.createUserWithEmailAndPassword(email, password);
+    try {
+      const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+      console.log("✅ Account created:", userCredential.user.email);
+      showPopup("✅ Account created successfully! Try logging in.", "success");
 
-    // ✅ show popup message
-    showPopup("✅ Account created successfully! Try logging in.");
+      signupForm.reset();
+      signupForm.classList.add("hidden");
+      loginForm.classList.remove("hidden");
+      document.getElementById("loginTab").classList.add("active");
+      document.getElementById("signupTab").classList.remove("active");
+    } catch (error) {
+      console.error("❌ Signup failed:", error);
+      showPopup("❌ " + error.message, "error");
+    }
+  });
 
-    // clear form
-    signupEmail.value = "";
-    signupPassword.value = "";
-
-    // switch to login tab automatically
-    signupForm.classList.add("hidden");
-    loginForm.classList.remove("hidden");
-    document.getElementById("loginTab").classList.add("active");
-    document.getElementById("signupTab").classList.remove("active");
-  } catch (error) {
-    showPopup("❌ " + error.message);
-  }
-});
-
-  // Google login
+  // --- GOOGLE LOGIN ---
   googleLogin.addEventListener("click", async () => {
     const provider = new firebase.auth.GoogleAuthProvider();
     try {
@@ -65,28 +69,21 @@ document.addEventListener("DOMContentLoaded", () => {
       console.log("✅ Google sign-in successful");
       window.location.href = "chat.html";
     } catch (err) {
-      alert("Google login failed: " + err.message);
+      showPopup("❌ Google login failed: " + err.message, "error");
     }
   });
 });
 
+// --- POPUP ---
 function showPopup(message, type = "success") {
   const popup = document.createElement("div");
   popup.className = `popup ${type}`;
   popup.textContent = message;
   document.body.appendChild(popup);
 
-  // slide in
   setTimeout(() => popup.classList.add("show"), 10);
-
-  // fade out
   setTimeout(() => {
     popup.classList.remove("show");
     setTimeout(() => popup.remove(), 300);
   }, 3000);
 }
-
-
-
-
-
