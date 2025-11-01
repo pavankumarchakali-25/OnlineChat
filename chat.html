@@ -3,52 +3,50 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Chat App</title>
+  <title>OnlineChat - Chat</title>
   <link rel="stylesheet" href="style.css">
+</head>
+<body class="light">
+
+  <div class="chat-container">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <input type="text" placeholder="Search users..." id="searchUser">
+      <h3>Pinned Chats</h3>
+      <ul id="userList">
+        <li>Test User 1 <span class="status online"></span></li>
+        <li>Test User 2 <span class="status offline"></span></li>
+      </ul>
+      <button id="logoutBtn" class="logout">Logout</button>
+      <button id="toggleThemeBtn">Toggle Dark Mode</button>
+    </aside>
+
+    <!-- Main chat area -->
+    <main class="chat-window">
+      <header id="chatHeader">Chatting with <span id="chatUser">Test User</span></header>
+
+      <div id="messages" class="messages">
+        <div class="message sent">Hey there 👋</div>
+        <div class="message received">Hello! How are you?</div>
+      </div>
+
+      <form id="messageForm" class="message-input" onsubmit="return false;">
+        <input type="text" id="messageInput" placeholder="Type a message...">
+        <input type="file" id="fileInput" accept="image/*" hidden>
+        <button type="button" id="fileBtn">📎</button>
+        <button type="submit" id="sendBtn">Send</button>
+      </form>
+    </main>
+  </div>
+
+  <!-- Firebase SDKs -->
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-storage-compat.js"></script>
-</head>
-<body>
-  <div class="chat-container">
-    <!-- Sidebar -->
-    <div class="sidebar">
-      <div class="search-box">
-        <input type="text" placeholder="Search users..." id="searchInput">
-      </div>
-      <div class="pinned-chats">
-        <h3>Users</h3>
-        <ul id="userList"></ul>
-      </div>
-      <button id="logoutBtn" class="logout-btn">Logout</button>
-    </div>
 
-    <!-- Chat Window -->
-    <div class="chat-window">
-      <div class="chat-header">
-        <div class="user-info">
-          <img id="chatUserImg" src="https://i.pravatar.cc/40" alt="User">
-          <div>
-            <h2 id="chatUserName">Select a User</h2>
-            <span id="userStatus" class="status offline">Offline</span>
-          </div>
-        </div>
-        <button id="darkModeToggle">🌙</button>
-      </div>
-
-      <div class="chat-messages" id="chatMessages"></div>
-
-      <form id="messageForm" class="message-input">
-        <input type="file" id="fileInput" hidden />
-        <button type="button" id="fileBtn">📎</button>
-        <input type="text" id="messageInput" placeholder="Type a message..." required />
-        <button type="submit">Send</button>
-      </form>
-    </div>
-  </div>
-
+  <!-- Project scripts -->
   <script src="firebase-config.js"></script>
   <script src="app.js"></script>
 </body>
