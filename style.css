@@ -98,23 +98,32 @@ header {
 }
 
 .message {
-  margin: 10px 0;
-  padding: 10px 15px;
+  display: block;              /* 🔥 ensures each message starts on a new line */
+  margin: 8px 0;               /* spacing between messages */
+  padding: 10px 14px;
   border-radius: 10px;
-  display: inline-block;
-  max-width: 70%;
+  max-width: 70%;              /* limit width so bubbles don’t stretch full width */
+  word-wrap: break-word;       /* handle long text properly */
+  white-space: pre-wrap;       /* preserve newlines and wrap text nicely */
+  line-height: 1.4;
 }
 
 .sent {
-  background: #4a90e2;
+  background: #2563eb;
   color: white;
-  align-self: flex-end;
+  margin-left: auto;           /* push sent messages to the right */
+  text-align: right;
+  border-bottom-right-radius: 2px;
 }
 
 .received {
-  background: #ddd;
-  color: #000;
+  background: #333;
+  color: #eee;
+  margin-right: auto;          /* align received messages to the left */
+  text-align: left;
+  border-bottom-left-radius: 2px;
 }
+
 
 .message.image img {
   max-width: 200px;
