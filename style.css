@@ -227,21 +227,28 @@ body {
   overflow-y: auto;
 }
 .message {
-  margin: 5px 0;
+  max-width: 60%;              /* 👈 Limit width */
   padding: 8px 12px;
+  margin: 6px 0;
   border-radius: 10px;
-  max-width: 60%;
+  word-wrap: break-word;
+  font-size: 14px;
 }
+
 .sent {
-  background: #2563eb;
+  background-color: #2563eb;   /* blue bubble */
   color: white;
-  margin-left: auto;
+  align-self: flex-end;
+  border-top-right-radius: 0;
 }
+
 .received {
-  background: #333;
-  color: #eee;
-  margin-right: auto;
+  background-color: #3a3a3a;   /* grey bubble */
+  color: #f1f1f1;
+  align-self: flex-start;
+  border-top-left-radius: 0;
 }
+
 .chat-input {
   display: flex;
   align-items: center;
@@ -252,13 +259,15 @@ body {
 
 .chat-input input {
   flex: 1;
-  padding: 8px 10px;       /* smaller height */
-  font-size: 14px;         /* compact text */
+  padding: 8px 12px;
+  font-size: 14px;
   border-radius: 8px;
   border: none;
   outline: none;
-  background: var(--input-bg);
+  background: #2b2b2b;   /* dark input background */
+  color: #f1f1f1;        /* light text color */
 }
+
 
 .chat-input button {
   margin-left: 8px;
@@ -286,9 +295,10 @@ body {
 
 .msg-time {
   display: block;
-  font-size: 0.75rem;
+  font-size: 11px;
   color: #aaa;
-  margin-top: 2px;
+  opacity: 0.7;
+  margin-top: 3px;
   text-align: right;
 }
 
