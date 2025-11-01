@@ -261,3 +261,14 @@ body {
   width: 200px;
   border-radius: 10px;
 }
+.msg-content {
+  display: block;
+}
+
+.msg-time {
+  display: block;
+  font-size: 0.75rem;
+  color: #aaa;
+  margin-top: 2px;
+  text-align: right;
+}
