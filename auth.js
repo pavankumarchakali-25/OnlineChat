@@ -1,72 +1,130 @@
-// === auth.js ===
+import { auth, db } from "./firebase-config.js";
+import { 
+  createUserWithEmailAndPassword, 
+  signInWithEmailAndPassword, 
+  signOut,
+  GoogleAuthProvider, 
+  signInWithPopup,
+  onAuthStateChanged
+} from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
+import { doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 
-// Tab switching
-const loginTab = document.getElementById("loginTab");
-const signupTab = document.getElementById("signupTab");
-const loginForm = document.getElementById("loginForm");
-const signupForm = document.getElementById("signupForm");
+// Email/Password Signup
+if (document.getElementById("signup-form")) {
+  document.getElementById("signup-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
 
-loginTab.addEventListener("click", () => {
-  loginTab.classList.add("active");
-  signupTab.classList.remove("active");
-  loginForm.classList.remove("hidden");
-  signupForm.classList.add("hidden");
-});
+    const name = document.getElementById("name").value;
+    const email = document.getElementById("email").value;
+    const password = document.getElementById("password").value;
 
-signupTab.addEventListener("click", () => {
-  signupTab.classList.add("active");
-  loginTab.classList.remove("active");
-  signupForm.classList.remove("hidden");
-  loginForm.classList.add("hidden");
-});
+    try {
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
 
-// Email login
-loginForm.addEventListener("submit", async (e) => {
-  e.preventDefault();
-  try {
-    await auth.signInWithEmailAndPassword(loginEmail.value, loginPassword.value);
-    window.location.href = "chat.html";
-  } catch (err) {
-    alert(err.message);
-  }
-});
+      // Save user in Firestore
+      await setDoc(doc(db, "users", user.uid), {
+        name: name,
+        email: email,
+        role: "user",
+        createdAt: new Date()
+      });
 
-// Email signup
-signupForm.addEventListener("submit", async (e) => {
-  e.preventDefault();
-  try {
-    const userCred = await auth.createUserWithEmailAndPassword(signupEmail.value, signupPassword.value);
-    await db.collection("users").doc(userCred.user.uid).set({
-      email: userCred.user.email,
-      uid: userCred.user.uid,
-      name: userCred.user.email.split("@")[0],
-      photoURL: "https://i.pravatar.cc/150?u=" + userCred.user.uid,
-    });
-    window.location.href = "chat.html";
-  } catch (err) {
-    alert(err.message);
-  }
-});
+      alert("✅ Account created successfully!");
+      window.location.href = "index.html";
 
-// Google login
-document.getElementById("googleLogin").addEventListener("click", async () => {
-  const provider = new firebase.auth.GoogleAuthProvider();
-  try {
-    const result = await auth.signInWithPopup(provider);
-    const user = result.user;
-    await db.collection("users").doc(user.uid).set({
-      email: user.email,
-      name: user.displayName,
-      photoURL: user.photoURL,
-      uid: user.uid,
-    }, { merge: true });
-    window.location.href = "chat.html";
-  } catch (err) {
-    alert(err.message);
-  }
-});
+    } catch (err)
+      {
+      console.error("🔥 Signup error:", err);
+      alert("❌ " + err.message);
+    }
+  });
+}
 
-// Redirect if logged in
-auth.onAuthStateChanged((user) => {
-  if (user) window.location.href = "chat.html";
-});
+// Email/Password Login
+if (document.getElementById("login-form")) {
+  document.getElementById("login-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+
+    const email = document.getElementById("email").value;
+    const password = document.getElementById("password").value;
+
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
+      alert("✅ Logged in successfully!");
+      window.location.href = "index.html";
+    } catch (err) {
+      console.error("🔥 Login error:", err);
+      alert("❌ " + err.message);
+    }
+  });
+}
+
+// Google Login
+if (document.getElementById("google-login-btn")) {
+  document.getElementById("google-login-btn").addEventListener("click", async () => {
+    const provider = new GoogleAuthProvider();
+    try {
+      const result = await signInWithPopup(auth, provider);
+      const user = result.user;
+
+      // --- Start of Fix ---
+      // Check if the user document already exists
+      const userRef = doc(db, "users", user.uid);
+      const userSnap = await getDoc(userRef);
+
+      // Only create a new document if one doesn't already exist
+      if (!userSnap.exists()) {
+        await setDoc(userRef, {
+          name: user.displayName,
+          email: user.email,
+          role: "user", // Set role to "user" only for brand new accounts
+          createdAt: new Date()
+        });
+      }
+      // If the user already exists, we do nothing, preserving their current role.
+      // --- End of Fix ---
+
+      alert("✅ Logged in with Google!");
+      window.location.href = "index.html";
+    } catch (err) {
+      console.error("🔥 Google login error:", err);
+      alert("❌ " + err.message);
+    }
+  });
+}
+
+const authBtn = document.getElementById("auth-btn");
+const welcomeText = document.getElementById("welcome-text");
+
+if (authBtn && welcomeText) {
+  onAuthStateChanged(auth, async (user) => {
+    if (user) {
+      // ✅ User logged in
+      let userName = user.displayName; // from Google login
+      if (!userName) {
+        // if signed up with email, fetch from Firestore
+        const userRef = doc(db, "users", user.uid);
+        const userSnap = await getDoc(userRef);
+        if (userSnap.exists()) {
+          userName = userSnap.data().name;
+        }
+      }
+
+      welcomeText.textContent = `Welcome, ${userName || "User"}`;
+
+      authBtn.textContent = "Logout";
+      authBtn.href = "#"; // disable link
+      authBtn.addEventListener("click", async (e) => {
+        e.preventDefault();
+        await signOut(auth);
+        window.location.href = "login.html";
+      });
+    } else {
+      // ❌ User not logged in
+      welcomeText.textContent = "";
+      authBtn.textContent = "Login";
+      authBtn.href = "login.html";
+    }
+  });
+}
