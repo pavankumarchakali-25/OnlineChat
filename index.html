@@ -4,14 +4,17 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Chat App - Login</title>
+  <link rel="icon" href="https://i.pravatar.cc/32" type="image/x-icon" />
   <link rel="stylesheet" href="style.css" />
-  <!-- Firebase SDK -->
+
+  <!-- ✅ Firebase SDKs (Compat versions, not modular) -->
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-storage-compat.js"></script>
 </head>
+
 <body>
   <div class="auth-container">
     <div class="auth-card">
@@ -22,6 +25,7 @@
         <button id="signupTab">Sign Up</button>
       </div>
 
+      <!-- Login Form -->
       <form id="loginForm">
         <input type="email" id="loginEmail" placeholder="Email" required />
         <input type="password" id="loginPassword" placeholder="Password" required />
@@ -30,6 +34,7 @@
         <button type="button" id="googleLogin" class="google-btn">Sign in with Google</button>
       </form>
 
+      <!-- Signup Form -->
       <form id="signupForm" class="hidden">
         <input type="email" id="signupEmail" placeholder="Email" required />
         <input type="password" id="signupPassword" placeholder="Password" required />
@@ -39,6 +44,7 @@
     </div>
   </div>
 
+  <!-- ✅ Load Firebase first, then your scripts -->
   <script src="firebase-config.js"></script>
   <script src="auth.js"></script>
 </body>
