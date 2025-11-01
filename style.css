@@ -244,19 +244,38 @@ body {
 }
 .chat-input {
   display: flex;
-  border-top: 1px solid #333;
-  padding: 8px;
-  gap: 8px;
+  align-items: center;
+  padding: 6px 10px;
+  background: var(--card-bg);
+  border-top: 1px solid var(--border-color);
 }
-.chat-input input[type="text"] {
-  flex-grow: 1;
+
+.chat-input input {
+  flex: 1;
+  padding: 8px 10px;       /* smaller height */
+  font-size: 14px;         /* compact text */
+  border-radius: 8px;
   border: none;
   outline: none;
-  background: #1e1e1e;
-  color: #fff;
-  padding: 10px;
-  border-radius: 10px;
+  background: var(--input-bg);
 }
+
+.chat-input button {
+  margin-left: 8px;
+  padding: 8px 14px;
+  border: none;
+  border-radius: 8px;
+  background: var(--accent-color);
+  color: white;
+  cursor: pointer;
+  font-size: 14px;
+  transition: 0.2s ease;
+}
+
+.chat-input button:hover {
+  opacity: 0.85;
+}
+
 .chat-image {
   width: 200px;
   border-radius: 10px;
