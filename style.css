@@ -221,3 +221,62 @@ body {
 .popup.error {
   background: #dc2626;
 }
+
+
+/* === MOBILE VIEW (Responsive) === */
+@media (max-width: 768px) {
+  .chat-container {
+    flex-direction: column;
+    height: 100vh;
+  }
+
+  /* Sidebar takes full width above chat */
+  .sidebar {
+    width: 100%;
+    height: 35vh;
+    border-right: none;
+    border-bottom: 1px solid var(--sidebar-border);
+    padding: 8px;
+  }
+
+  /* Chat window below sidebar */
+  .chat-window {
+    width: 100%;
+    height: 65vh;
+  }
+
+  .chat-header {
+    padding: 8px;
+    font-size: 14px;
+  }
+
+  .chat-messages {
+    padding: 8px;
+  }
+
+  .message {
+    max-width: 80%;
+    font-size: 13px;
+    padding: 6px 10px;
+  }
+
+  .chat-input {
+    padding: 6px;
+  }
+
+  .chat-input input {
+    padding: 8px;
+    font-size: 13px;
+  }
+
+  .chat-input button {
+    padding: 8px 10px;
+    font-size: 13px;
+  }
+
+  /* User list smaller avatars */
+  .avatar {
+    width: 32px;
+    height: 32px;
+  }
+}
