@@ -82,19 +82,30 @@ async function openChat(user) {
   unsubscribeMessages = messagesRef.onSnapshot((snapshot) => {
     messagesDiv.innerHTML = "";
     snapshot.forEach((doc) => {
-      const msg = doc.data();
-      const div = document.createElement("div");
-      div.classList.add("message", msg.sender === auth.currentUser.uid ? "sent" : "received");
+  const msg = doc.data();
+  const div = document.createElement("div");
+  div.classList.add("message", msg.sender === auth.currentUser.uid ? "sent" : "received");
 
-      if (msg.type === "image") {
-        div.innerHTML = `<img src="${msg.content}" class="chat-image" />`;
-      } else {
-        div.textContent = msg.content;
-      }
+  const time = msg.timestamp
+    ? new Date(msg.timestamp.toDate()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    : '';
 
-      messagesDiv.appendChild(div);
-      messagesDiv.scrollTop = messagesDiv.scrollHeight;
-    });
+  if (msg.type === "image") {
+    div.innerHTML = `
+      <div class="msg-content"><img src="${msg.content}" class="chat-image" /></div>
+      <small class="msg-time">${time}</small>
+    `;
+  } else {
+    div.innerHTML = `
+      <div class="msg-content">${msg.content}</div>
+      <small class="msg-time">${time}</small>
+    `;
+  }
+
+  messagesDiv.appendChild(div);
+  messagesDiv.scrollTop = messagesDiv.scrollHeight;
+});
+
   });
 }
 
