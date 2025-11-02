@@ -118,13 +118,7 @@ auth.onAuthStateChanged(async (user) => {
     });
   });
 });
-          <p>${u.name}</p>
-        </div>
-      `;
-      li.addEventListener("click", () => openChat(u));
-      usersList.appendChild(li);
-});
-
+         
 // --- Open chat with a user ---
 async function openChat(user) {
   selectedUser = user;
