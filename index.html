@@ -7,12 +7,15 @@
   <link rel="icon" href="https://i.pravatar.cc/32" type="image/x-icon" />
   <link rel="stylesheet" href="style.css" />
 
-  <!-- ✅ Firebase SDKs (Compat versions, not modular) -->
+  <!-- ✅ CORRECT SCRIPT ORDER -->
+  <!-- 1. The main App (MUST be first) -->
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+  <!-- 2. The other services -->
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-database-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-storage-compat.js"></script>
+  <!-- 3. App Check (MUST be after app-compat) -->
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-check-compat.js"></script>
 </head>
 
@@ -45,18 +48,10 @@
     </div>
   </div>
 
-  <!-- Firebase SDKs -->
-<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-database-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-storage-compat.js"></script>
+  <!-- ✅ DUPLICATE SCRIPTS REMOVED FROM HERE -->
 
-<!-- Your project scripts -->
-<script src="firebase-config.js"></script>
-<script src="auth.js"></script>
-</body>
-</html>
-
+  <!-- Your project scripts -->
+  <script src="firebase-config.js"></script>
+  <script src="auth.js"></script>
 </body>
 </html>
