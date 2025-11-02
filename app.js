@@ -8,6 +8,7 @@ const sendBtn = document.getElementById("sendBtn");
 const uploadBtn = document.getElementById("uploadBtn");
 const fileInput = document.getElementById("fileInput");
 const logoutBtn = document.getElementById("logoutBtn");
+const deleteAccountBtn = document.getElementById("deleteAccountBtn");
 const darkModeToggle = document.getElementById("darkModeToggle");
 
 let selectedUser = null;
@@ -187,6 +188,51 @@ document.addEventListener("click", (e) => {
     }
   }
 });
+
+// --- Delete Account ---
+deleteAccountBtn.addEventListener("click", async () => {
+  // 1. Get the current user
+  const user = auth.currentUser;
+  if (!user) return; // Should never happen if they're logged in
+
+  // 2. Confirm the action
+  const wantsToDelete = confirm(
+    "ARE YOU SURE?\n\nThis will permanently delete your account and all your data. This action cannot be undone."
+  );
+
+  if (!wantsToDelete) {
+    return; // User clicked "Cancel"
+  }
+
+  // 3. Try to delete the account
+  try {
+    // Step A: Delete the user's data from Firestore
+    await db.collection("users").doc(user.uid).delete();
+
+    // Step B: Delete the user from Firebase Authentication
+    await user.delete();
+
+    // Step C: Redirect to login page
+    alert("Your account has been permanently deleted.");
+    window.location.href = "index.html";
+
+  } catch (error) {
+    console.error("Error deleting account:", error);
+
+    if (error.code === "auth/requires-recent-login") {
+      // This is a security measure.
+      // You must ask the user to log in again before they can delete.
+      alert("This is a sensitive operation. Please log out and log back in again before deleting your account.");
+
+      // Optional: You could redirect them to the login page
+      // await auth.signOut();
+      // window.location.href = "index.html";
+    } else {
+      alert("Error: " + error.message);
+    }
+  }
+});
+
 // --- Search users ---
 searchUser.addEventListener("keyup", (e) => {
   const searchTerm = e.target.value.toLowerCase();
