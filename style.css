@@ -222,6 +222,13 @@ body {
   background: #dc2626;
 }
 
+.danger-btn {
+  background-color: #dc2626; /* A red color */
+  color: white;
+}
+.danger-btn:hover {
+  opacity: 0.8;
+}
 
 /* === MOBILE STYLES === */
 @media (max-width: 768px) {
