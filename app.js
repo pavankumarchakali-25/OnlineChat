@@ -228,12 +228,13 @@ auth.onAuthStateChanged(async (user) => {
       // --- ❌ THIS BLOCK IS REMOVED ---
       // It causes a "permission-denied" error because you cannot
       // write to another user's document from the client.
+      // This is the correct, secure behavior.
       
       // Update receiver's doc for sorting AND to set unread flag
-      await db.collection("users").doc(selectedUser.uid).update({
-        lastMessageTimestamp: timestamp,
-        ["unreadMessages." + user.uid]: true // Sets a flag like { unreadMessages: { "sender-id-123": true } }
-      });
+      // await db.collection("users").doc(selectedUser.uid).update({
+      //   lastMessageTimestamp: timestamp,
+      //   ["unreadMessages." + user.uid]: true // Sets a flag like { unreadMessages: { "sender-id-123": true } }
+      // });
     */
     // ============================================
 
@@ -279,10 +280,10 @@ auth.onAuthStateChanged(async (user) => {
       // --- ❌ THIS BLOCK IS REMOVED ---
       // It causes a "permission-denied" error.
 
-      await db.collection("users").doc(selectedUser.uid).update({
-        lastMessageTimestamp: timestamp,
-        ["unreadMessages." + user.uid]: true
-      });
+      // await db.collection("users").doc(selectedUser.uid).update({
+      //   lastMessageTimestamp: timestamp,
+      //   ["unreadMessages." + user.uid]: true
+      // });
     */
     // ============================================
   });
