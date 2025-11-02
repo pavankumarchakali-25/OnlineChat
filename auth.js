@@ -5,16 +5,35 @@ document.addEventListener("DOMContentLoaded", () => {
   const signupForm = document.getElementById("signupForm");
   const googleLogin = document.getElementById("googleLogin");
 
-  // --- Switch Tabs ---
-  document.getElementById("loginTab").addEventListener("click", () => {
+  // --- ✅ FIXED Switch Tabs ---
+  const loginTab = document.getElementById("loginTab");
+  const signupTab = document.getElementById("signupTab");
+  const switchToLogin = document.getElementById("switchToLogin"); // Get the link too
+
+  loginTab.addEventListener("click", () => {
     loginForm.classList.remove("hidden");
     signupForm.classList.add("hidden");
+    
+    loginTab.classList.add("active");
+    signupTab.classList.remove("active");
   });
 
-  document.getElementById("signupTab").addEventListener("click", () => {
+  signupTab.addEventListener("click", () => {
     signupForm.classList.remove("hidden");
     loginForm.classList.add("hidden");
+    
+    signupTab.classList.add("active");
+    loginTab.classList.remove("active");
   });
+
+  // Also handle the "Login" link on the signup form
+  if (switchToLogin) {
+    switchToLogin.addEventListener("click", (e) => {
+      e.preventDefault(); // Stop the link from jumping
+      loginTab.click(); // Simulate a click on the login tab
+    });
+  }
+  // ============================
 
   // --- LOGIN ---
   loginForm.addEventListener("submit", async (e) => {
@@ -51,10 +70,9 @@ document.addEventListener("DOMContentLoaded", () => {
       showPopup("✅ Account created successfully! Try logging in.", "success");
 
       signupForm.reset();
-      signupForm.classList.add("hidden");
-      loginForm.classList.remove("hidden");
-      document.getElementById("loginTab").classList.add("active");
-      document.getElementById("signupTab").classList.remove("active");
+      // Switch to login tab after successful signup
+      loginTab.click(); 
+      
     } catch (error) {
       console.error("❌ Signup failed:", error);
       showPopup("❌ " + error.message, "error");
