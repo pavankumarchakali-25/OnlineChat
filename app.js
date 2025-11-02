@@ -14,6 +14,11 @@ const darkModeToggle = document.getElementById("darkModeToggle");
 let selectedUser = null;
 let unsubscribeMessages = null;
 
+// --- Get Modal Elements ---
+const nicknameModal = document.getElementById("nicknameModalOverlay");
+const nicknameInput = document.getElementById("nicknameInput");
+const saveNicknameBtn = document.getElementById("saveNicknameBtn");
+
 // --- Load current user info ---
 auth.onAuthStateChanged(async (user) => {
   if (!user) {
@@ -21,19 +26,89 @@ auth.onAuthStateChanged(async (user) => {
     return;
   }
 
-  // Update Firestore user record
+  // Get user's data from Firestore
   const userRef = db.collection("users").doc(user.uid);
   const userDoc = await userRef.get();
-  if (!userDoc.exists) {
-    await userRef.set({
-      uid: user.uid,
-      name: user.displayName || user.email.split("@")[0],
-      email: user.email,
-      photoURL: user.photoURL || "images/default-avatar.png",
-      lastActive: firebase.firestore.FieldValue.serverTimestamp(),
+
+  // Function to show the modal
+  const showNicknameModal = (defaultName) => {
+    nicknameInput.value = defaultName;
+    nicknameModal.classList.remove("hidden");
+  };
+
+  // Function to load all other users
+  const loadUsers = () => {
+    db.collection("users").onSnapshot((snapshot) => {
+      usersList.innerHTML = "";
+      snapshot.forEach((doc) => {
+        const u = doc.data();
+        if (u.uid === user.uid) return;
+
+        const li = document.createElement("li");
+        li.classList.add("user-item");
+        li.innerHTML = `
+          <img src="${u.photoURL}" class="avatar" />
+          <div>
+            <p>${u.name}</p>
+          </div>
+        `;
+        li.addEventListener("click", () => openChat(u));
+        usersList.appendChild(li);
+      });
     });
+  };
+
+  if (!userDoc.exists) {
+    // --- This is a BRAND NEW user ---
+    const defaultName = user.displayName || user.email.split("@")[0];
+    showNicknameModal(defaultName);
+
+    // Wait for them to save their name
+    saveNicknameBtn.onclick = async () => {
+      const newName = nicknameInput.value.trim();
+      if (!newName) return alert("Please enter a name");
+
+      await userRef.set({
+        uid: user.uid,
+        name: newName,
+        email: user.email,
+        photoURL: user.photoURL || "images/default-avatar.png",
+        lastActive: firebase.firestore.FieldValue.serverTimestamp(),
+        nicknameSet: true, // This is our new flag
+      });
+
+      nicknameModal.classList.add("hidden");
+      loadUsers(); // Now load the users list
+    };
+
   } else {
-    await userRef.update({ lastActive: firebase.firestore.FieldValue.serverTimestamp() });
+    // --- This is a RETURNING user ---
+    const userData = userDoc.data();
+
+    if (userData.nicknameSet) {
+      // They already have a nickname, just log them in
+      await userRef.update({ lastActive: firebase.firestore.FieldValue.serverTimestamp() });
+      loadUsers();
+    } else {
+      // This is an OLD user who needs to set their nickname
+      const defaultName = userData.name; // Use their old name as default
+      showNicknameModal(defaultName);
+
+      // Wait for them to save their name
+      saveNicknameBtn.onclick = async () => {
+        const newName = nicknameInput.value.trim();
+        if (!newName) return alert("Please enter a name");
+
+        await userRef.update({
+          name: newName,
+          lastActive: firebase.firestore.FieldValue.serverTimestamp(),
+          nicknameSet: true, // Set the flag
+        });
+
+        nicknameModal.classList.add("hidden");
+        loadUsers(); // Now load the users list
+      };
+    }
   }
 
   // Mark offline on tab close
@@ -42,19 +117,7 @@ auth.onAuthStateChanged(async (user) => {
       lastActive: firebase.firestore.FieldValue.serverTimestamp(),
     });
   });
-
-  // Load all users (except current)
-  db.collection("users").onSnapshot((snapshot) => {
-    usersList.innerHTML = "";
-    snapshot.forEach((doc) => {
-      const u = doc.data();
-      if (u.uid === user.uid) return;
-
-      const li = document.createElement("li");
-      li.classList.add("user-item");
-      li.innerHTML = `
-        <img src="${u.photoURL}" class="avatar" />
-        <div>
+});
           <p>${u.name}</p>
         </div>
       `;
@@ -246,4 +309,52 @@ searchUser.addEventListener("keyup", (e) => {
       item.style.display = "none"; // Hide the item
     }
   });
+});
+
+// --- NICKNAME MODAL FUNCTIONS ---
+
+function showNicknameModal() {
+  nicknameModal.classList.remove("hidden");
+  // Set the default value to their current name
+  const currentName = auth.currentUser.displayName || auth.currentUser.email.split("@")[0];
+  nicknameInput.value = currentName;
+}
+
+function hideNicknameModal() {
+  nicknameModal.classList.add("hidden");
+}
+
+saveNicknameBtn.addEventListener("click", async () => {
+  const user = auth.currentUser;
+  if (!user) return;
+
+  const newNickname = nicknameInput.value.trim();
+
+  // Simple validation
+  if (newNickname.length < 3) {
+    alert("Nickname must be at least 3 characters long.");
+    return;
+  }
+  if (newNickname.length > 25) {
+    alert("Nickname must be 25 characters or less.");
+    return;
+  }
+
+  try {
+    // Update the user's name and set the flag to 'true'
+    await db.collection("users").doc(user.uid).update({
+      name: newNickname,
+      hasSetNickname: true // <-- This ensures they can't do it again
+    });
+
+    // Hide the modal
+    hideNicknameModal();
+    
+    // Optional: Show a success popup (if you have your showPopup function available)
+    // showPopup("Nickname updated successfully!", "success");
+
+  } catch (err) {
+    console.error("Error updating nickname:", err);
+    alert("Error: " + err.message);
+  }
 });
