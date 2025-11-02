@@ -1,13 +1,23 @@
+/* Default: Light Mode */
 :root {
+  --bg: #ffffff;
+  --text: #121212;
+  --sidebar-bg: #f4f4f4;
+  --sidebar-border: #e0e0e0;
+  --card-bg: #ffffff;
+  --border-color: #e0e0e0;
+  --accent-color: #2563eb;
+}
+
+/* Dark Mode (when body has .dark class) */
+body.dark {
   --bg: #121212;
   --text: #fff;
   --sidebar-bg: #1f1f1f;
   --sidebar-border: #333;
   --card-bg: #1f1f1f;
   --border-color: #333;
-  --accent-color: #2563eb;
 }
-
 body {
   margin: 0;
   font-family: 'Segoe UI', sans-serif;
