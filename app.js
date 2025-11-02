@@ -70,8 +70,6 @@ auth.onAuthStateChanged(async (user) => {
           if (u.uid === user.uid) return; // <-- Use `user.uid`
 
           // === NEW: Check for unread dot ===
-          // This will now only show dots if another user's session sets it
-          // Or if you implement a server-side function
           const hasUnread = currentUserData.unreadMessages && currentUserData.unreadMessages[u.uid];
 
           const li = document.createElement("li");
@@ -224,18 +222,16 @@ auth.onAuthStateChanged(async (user) => {
       lastMessageTimestamp: timestamp
     });
 
-    /*
-      // --- ❌ THIS BLOCK IS REMOVED ---
-      // It causes a "permission-denied" error because you cannot
-      // write to another user's document from the client.
-      // This is the correct, secure behavior.
-      
-      // Update receiver's doc for sorting AND to set unread flag
-      // await db.collection("users").doc(selectedUser.uid).update({
-      //   lastMessageTimestamp: timestamp,
-      //   ["unreadMessages." + user.uid]: true // Sets a flag like { unreadMessages: { "sender-id-123": true } }
-      // });
-    */
+    
+    // --- ✅ THIS BLOCK IS NOW ADDED BACK ---
+    // This will now work because of the relaxed rules.
+    
+    // Update receiver's doc for sorting AND to set unread flag
+    await db.collection("users").doc(selectedUser.uid).update({
+      lastMessageTimestamp: timestamp,
+      ["unreadMessages." + user.uid]: true // Sets a flag like { unreadMessages: { "sender-id-123": true } }
+    });
+    
     // ============================================
 
     messageInput.value = ""; // <-- This line will now work!
@@ -276,15 +272,15 @@ auth.onAuthStateChanged(async (user) => {
       lastMessageTimestamp: timestamp
     });
 
-    /*
-      // --- ❌ THIS BLOCK IS REMOVED ---
-      // It causes a "permission-denied" error.
+    
+    // --- ✅ THIS BLOCK IS NOW ADDED BACK ---
+    // This will now work because of the relaxed rules.
 
-      // await db.collection("users").doc(selectedUser.uid).update({
-      //   lastMessageTimestamp: timestamp,
-      //   ["unreadMessages." + user.uid]: true
-      // });
-    */
+    await db.collection("users").doc(selectedUser.uid).update({
+      lastMessageTimestamp: timestamp,
+      ["unreadMessages." + user.uid]: true
+    });
+    
     // ============================================
   });
 
