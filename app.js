@@ -61,6 +61,8 @@ auth.onAuthStateChanged(async (user) => {
           if (u.uid === user.uid) return;
 
           // === NEW: Check for unread dot ===
+          // This will now only show dots if another user's session sets it
+          // Or if you implement a server-side function
           const hasUnread = currentUserData.unreadMessages && currentUserData.unreadMessages[u.uid];
 
           const li = document.createElement("li");
@@ -223,14 +225,21 @@ sendBtn.addEventListener("click", async () => {
   await db.collection("users").doc(auth.currentUser.uid).update({
     lastMessageTimestamp: timestamp
   });
-  // Update receiver's doc for sorting AND to set unread flag
-  await db.collection("users").doc(selectedUser.uid).update({
-    lastMessageTimestamp: timestamp,
-    ["unreadMessages." + auth.currentUser.uid]: true // Sets a flag like { unreadMessages: { "sender-id-123": true } }
-  });
+
+  /*
+    // --- ❌ THIS BLOCK IS REMOVED ---
+    // It causes a "permission-denied" error because you cannot
+    // write to another user's document from the client.
+    
+    // Update receiver's doc for sorting AND to set unread flag
+    await db.collection("users").doc(selectedUser.uid).update({
+      lastMessageTimestamp: timestamp,
+      ["unreadMessages." + auth.currentUser.uid]: true // Sets a flag like { unreadMessages: { "sender-id-123": true } }
+    });
+  */
   // ============================================
 
-  messageInput.value = "";
+  messageInput.value = ""; // <-- This line will now work!
 });
 
 // --- ✅ Send message on pressing Enter ---
@@ -259,7 +268,7 @@ fileInput.addEventListener("change", async (e) => {
     receiver: selectedUser.uid,
     type: "image",
     content: url,
-    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+    timestamp: firebase.firestore.FieldValue..serverTimestamp(),
   });
 
   // === NEW: Update timestamps and unread flag (COPIED) ===
@@ -267,10 +276,16 @@ fileInput.addEventListener("change", async (e) => {
   await db.collection("users").doc(auth.currentUser.uid).update({
     lastMessageTimestamp: timestamp
   });
-  await db.collection("users").doc(selectedUser.uid).update({
-    lastMessageTimestamp: timestamp,
-    ["unreadMessages." + auth.currentUser.uid]: true
-  });
+
+  /*
+    // --- ❌ THIS BLOCK IS REMOVED ---
+    // It causes a "permission-denied" error.
+
+    await db.collection("users").doc(selectedUser.uid).update({
+      lastMessageTimestamp: timestamp,
+      ["unreadMessages." + auth.currentUser.uid]: true
+    });
+  */
   // ============================================
 });
 
@@ -336,7 +351,7 @@ deleteAccountBtn.addEventListener("click", async () => {
       // This is a security measure.
       alert("This is a sensitive operation. Please log out and log back in again before deleting your account.");
     } else {
-      alert("Error: " + error.message);
+      alert("Error: "Error: " + error.message);
     }
   }
 });
