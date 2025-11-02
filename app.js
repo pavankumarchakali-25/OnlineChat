@@ -1,6 +1,7 @@
 // --- AUTH & DB REFERENCES ---
 const currentUser = auth.currentUser;
 const usersList = document.getElementById("usersList");
+const searchUser = document.getElementById("searchUser");
 const messagesDiv = document.getElementById("messages");
 const messageInput = document.getElementById("messageInput");
 const sendBtn = document.getElementById("sendBtn");
@@ -185,4 +186,18 @@ document.addEventListener("click", (e) => {
       sidebar.classList.remove("active");
     }
   }
+});
+// --- Search users ---
+searchUser.addEventListener("keyup", (e) => {
+  const searchTerm = e.target.value.toLowerCase();
+  const userItems = usersList.querySelectorAll(".user-item");
+
+  userItems.forEach((item) => {
+    const userName = item.querySelector("p").textContent.toLowerCase();
+    if (userName.includes(searchTerm)) {
+      item.style.display = "flex"; // Show the item
+    } else {
+      item.style.display = "none"; // Hide the item
+    }
+  });
 });
