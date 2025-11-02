@@ -268,7 +268,7 @@ fileInput.addEventListener("change", async (e) => {
     receiver: selectedUser.uid,
     type: "image",
     content: url,
-    timestamp: firebase.firestore.FieldValue..serverTimestamp(),
+    timestamp: firebase.firestore.FieldValue.serverTimestamp(), // <-- ✅ FIXED (removed extra dot)
   });
 
   // === NEW: Update timestamps and unread flag (COPIED) ===
@@ -324,6 +324,8 @@ deleteAccountBtn.addEventListener("click", async () => {
   if (!user) return; // Should never happen if they're logged in
 
   // 2. Confirm the action
+  // Note: Using a custom modal/popup is better than confirm()
+  // but confirm() is used here based on original code.
   const wantsToDelete = confirm(
     "ARE YOU SURE?\n\nThis will permanently delete your account and all your data. This action cannot be undone."
   );
@@ -351,7 +353,7 @@ deleteAccountBtn.addEventListener("click", async () => {
       // This is a security measure.
       alert("This is a sensitive operation. Please log out and log back in again before deleting your account.");
     } else {
-      alert("Error: "Error: " + error.message);
+      alert("Error: " + error.message); // <-- ✅ FIXED (removed extra quotes)
     }
   }
 });
