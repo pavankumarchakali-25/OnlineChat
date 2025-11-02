@@ -13,6 +13,7 @@ const darkModeToggle = document.getElementById("darkModeToggle");
 
 let selectedUser = null;
 let unsubscribeMessages = null;
+let currentUserData = {}; // <-- NEW: To store our own user data (for unread msgs)
 
 // --- Get Modal Elements ---
 const nicknameModal = document.getElementById("nicknameModalOverlay");
@@ -28,6 +29,19 @@ auth.onAuthStateChanged(async (user) => {
 
   // Get user's data from Firestore
   const userRef = db.collection("users").doc(user.uid);
+
+  // === NEW: Listen to our own doc for unread message updates ===
+  let loadUsers; // Declare loadUsers here so we can call it
+  userRef.onSnapshot((doc) => {
+    if (doc.exists) {
+      currentUserData = doc.data(); // Store our data
+      // (Re-)load the user list every time our own data changes
+      // This makes the "unread" dot disappear instantly
+      if (loadUsers) loadUsers();
+    }
+  });
+  // ==========================================================
+
   const userDoc = await userRef.get();
 
   // Function to show the modal
@@ -36,27 +50,35 @@ auth.onAuthStateChanged(async (user) => {
     nicknameModal.classList.remove("hidden");
   };
 
-  // Function to load all other users
-  const loadUsers = () => {
-    db.collection("users").onSnapshot((snapshot) => {
-      usersList.innerHTML = "";
-      snapshot.forEach((doc) => {
-        const u = doc.data();
-        if (u.uid === user.uid) return;
+  // === UPDATED: Function to load all other users (now sorts and shows unread) ===
+  loadUsers = () => {
+    db.collection("users")
+      .orderBy("lastMessageTimestamp", "desc") // <-- SORTS
+      .onSnapshot((snapshot) => {
+        usersList.innerHTML = "";
+        snapshot.forEach((doc) => {
+          const u = doc.data();
+          if (u.uid === user.uid) return;
 
-        const li = document.createElement("li");
-        li.classList.add("user-item");
-        li.innerHTML = `
-          <img src="${u.photoURL}" class="avatar" />
-          <div>
-            <p>${u.name}</p>
-          </div>
-        `;
-        li.addEventListener("click", () => openChat(u));
-        usersList.appendChild(li);
+          // === NEW: Check for unread dot ===
+          const hasUnread = currentUserData.unreadMessages && currentUserData.unreadMessages[u.uid];
+
+          const li = document.createElement("li");
+          li.classList.add("user-item");
+          // === NEW: Updated HTML for dot ===
+          li.innerHTML = `
+            <img src="${u.photoURL}" class="avatar" />
+            <div class="user-list-name">
+              <p>${u.name}</p>
+            </div>
+            ${hasUnread ? '<span class="unread-dot"></span>' : ''}
+          `;
+          li.addEventListener("click", () => openChat(u));
+          usersList.appendChild(li);
+        });
       });
-    });
   };
+  // ===================================
 
   if (!userDoc.exists) {
     // --- This is a BRAND NEW user ---
@@ -74,11 +96,12 @@ auth.onAuthStateChanged(async (user) => {
         email: user.email,
         photoURL: user.photoURL || "images/default-avatar.png",
         lastActive: firebase.firestore.FieldValue.serverTimestamp(),
-        nicknameSet: true, // This is our new flag
+        lastMessageTimestamp: firebase.firestore.FieldValue.serverTimestamp(), // <-- NEW
+        nicknameSet: true,
       });
 
       nicknameModal.classList.add("hidden");
-      loadUsers(); // Now load the users list
+      // loadUsers() is no longer called here; the snapshot handles it
     };
 
   } else {
@@ -88,7 +111,7 @@ auth.onAuthStateChanged(async (user) => {
     if (userData.nicknameSet) {
       // They already have a nickname, just log them in
       await userRef.update({ lastActive: firebase.firestore.FieldValue.serverTimestamp() });
-      loadUsers();
+      // loadUsers() is no longer called here; the snapshot handles it
     } else {
       // This is an OLD user who needs to set their nickname
       const defaultName = userData.name; // Use their old name as default
@@ -102,11 +125,12 @@ auth.onAuthStateChanged(async (user) => {
         await userRef.update({
           name: newName,
           lastActive: firebase.firestore.FieldValue.serverTimestamp(),
+          lastMessageTimestamp: firebase.firestore.FieldValue.serverTimestamp(), // <-- NEW
           nicknameSet: true, // Set the flag
         });
 
         nicknameModal.classList.add("hidden");
-        loadUsers(); // Now load the users list
+        // loadUsers() is no longer called here; the snapshot handles it
       };
     }
   }
@@ -118,9 +142,19 @@ auth.onAuthStateChanged(async (user) => {
     });
   });
 });
-         
+
 // --- Open chat with a user ---
 async function openChat(user) {
+  
+  // === NEW: Mark as Read ===
+  if (currentUserData.unreadMessages && currentUserData.unreadMessages[user.uid]) {
+    // Remove the flag from our own user document
+    db.collection("users").doc(auth.currentUser.uid).update({
+      ["unreadMessages." + user.uid]: firebase.firestore.FieldValue.delete()
+    });
+  }
+  // =========================
+
   selectedUser = user;
   document.getElementById("chatUserName").textContent = user.name;
   document.getElementById("chatUserPhoto").src = user.photoURL;
@@ -183,6 +217,19 @@ sendBtn.addEventListener("click", async () => {
     timestamp: firebase.firestore.FieldValue.serverTimestamp(),
   });
 
+  // === NEW: Update timestamps and unread flag ===
+  const timestamp = firebase.firestore.FieldValue.serverTimestamp();
+  // Update sender's doc for sorting
+  await db.collection("users").doc(auth.currentUser.uid).update({
+    lastMessageTimestamp: timestamp
+  });
+  // Update receiver's doc for sorting AND to set unread flag
+  await db.collection("users").doc(selectedUser.uid).update({
+    lastMessageTimestamp: timestamp,
+    ["unreadMessages." + auth.currentUser.uid]: true // Sets a flag like { unreadMessages: { "sender-id-123": true } }
+  });
+  // ============================================
+
   messageInput.value = "";
 });
 
@@ -214,6 +261,17 @@ fileInput.addEventListener("change", async (e) => {
     content: url,
     timestamp: firebase.firestore.FieldValue.serverTimestamp(),
   });
+
+  // === NEW: Update timestamps and unread flag (COPIED) ===
+  const timestamp = firebase.firestore.FieldValue.serverTimestamp();
+  await db.collection("users").doc(auth.currentUser.uid).update({
+    lastMessageTimestamp: timestamp
+  });
+  await db.collection("users").doc(selectedUser.uid).update({
+    lastMessageTimestamp: timestamp,
+    ["unreadMessages." + auth.currentUser.uid]: true
+  });
+  // ============================================
 });
 
 // --- Logout ---
@@ -276,12 +334,7 @@ deleteAccountBtn.addEventListener("click", async () => {
 
     if (error.code === "auth/requires-recent-login") {
       // This is a security measure.
-      // You must ask the user to log in again before they can delete.
       alert("This is a sensitive operation. Please log out and log back in again before deleting your account.");
-
-      // Optional: You could redirect them to the login page
-      // await auth.signOut();
-      // window.location.href = "index.html";
     } else {
       alert("Error: " + error.message);
     }
@@ -303,50 +356,6 @@ searchUser.addEventListener("keyup", (e) => {
   });
 });
 
-// --- NICKNAME MODAL FUNCTIONS ---
-
-function showNicknameModal() {
-  nicknameModal.classList.remove("hidden");
-  // Set the default value to their current name
-  const currentName = auth.currentUser.displayName || auth.currentUser.email.split("@")[0];
-  nicknameInput.value = currentName;
-}
-
-function hideNicknameModal() {
-  nicknameModal.classList.add("hidden");
-}
-
-saveNicknameBtn.addEventListener("click", async () => {
-  const user = auth.currentUser;
-  if (!user) return;
-
-  const newNickname = nicknameInput.value.trim();
-
-  // Simple validation
-  if (newNickname.length < 3) {
-    alert("Nickname must be at least 3 characters long.");
-    return;
-  }
-  if (newNickname.length > 25) {
-    alert("Nickname must be 25 characters or less.");
-    return;
-  }
-
-  try {
-    // Update the user's name and set the flag to 'true'
-    await db.collection("users").doc(user.uid).update({
-      name: newNickname,
-      hasSetNickname: true // <-- This ensures they can't do it again
-    });
-
-    // Hide the modal
-    hideNicknameModal();
-    
-    // Optional: Show a success popup (if you have your showPopup function available)
-    // showPopup("Nickname updated successfully!", "success");
-
-  } catch (err) {
-    console.error("Error updating nickname:", err);
-    alert("Error: " + err.message);
-  }
-});
+// NOTE: All the conflicting nickname functions from the end of the file
+// have been REMOVED, as their logic is already correctly
+// handled inside auth.onAuthStateChanged.
