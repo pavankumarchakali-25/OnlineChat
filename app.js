@@ -1,5 +1,5 @@
 // --- AUTH & DB REFERENCES ---
-const currentUser = auth.currentUser;
+// Note: `auth.currentUser` is NOT used here anymore, as it's unreliable on page load
 const usersList = document.getElementById("usersList");
 const searchUser = document.getElementById("searchUser");
 const messagesDiv = document.getElementById("messages");
@@ -20,12 +20,21 @@ const nicknameModal = document.getElementById("nicknameModalOverlay");
 const nicknameInput = document.getElementById("nicknameInput");
 const saveNicknameBtn = document.getElementById("saveNicknameBtn");
 
+// --- Generate a unique chat ID between two users ---
+// This function doesn't need auth, so it can stay outside.
+function getChatId(uid1, uid2) {
+  return [uid1, uid2].sort().join("_");
+}
+
 // --- Load current user info ---
 auth.onAuthStateChanged(async (user) => {
   if (!user) {
+    // If no user, redirect to login.
     window.location.href = "index.html";
     return;
   }
+
+  // --- ALL USER-DEPENDENT LOGIC MOVED INSIDE HERE ---
 
   // Get user's data from Firestore
   const userRef = db.collection("users").doc(user.uid);
@@ -58,7 +67,7 @@ auth.onAuthStateChanged(async (user) => {
         usersList.innerHTML = "";
         snapshot.forEach((doc) => {
           const u = doc.data();
-          if (u.uid === user.uid) return;
+          if (u.uid === user.uid) return; // <-- Use `user.uid`
 
           // === NEW: Check for unread dot ===
           // This will now only show dots if another user's session sets it
@@ -82,6 +91,7 @@ auth.onAuthStateChanged(async (user) => {
   };
   // ===================================
 
+  // --- Nickname logic (runs once) ---
   if (!userDoc.exists) {
     // --- This is a BRAND NEW user ---
     const defaultName = user.displayName || user.email.split("@")[0];
@@ -137,242 +147,234 @@ auth.onAuthStateChanged(async (user) => {
     }
   }
 
-  // Mark offline on tab close
+  // --- Open chat with a user ---
+  async function openChat(userToOpen) {
+    
+    // === NEW: Mark as Read ===
+    if (currentUserData.unreadMessages && currentUserData.unreadMessages[userToOpen.uid]) {
+      // Remove the flag from our own user document
+      // Use the valid `user.uid` from onAuthStateChanged
+      db.collection("users").doc(user.uid).update({
+        ["unreadMessages." + userToOpen.uid]: firebase.firestore.FieldValue.delete()
+      });
+    }
+    // =========================
+
+    selectedUser = userToOpen; // Set the selected user
+    document.getElementById("chatUserName").textContent = selectedUser.name;
+    document.getElementById("chatUserPhoto").src = selectedUser.photoURL;
+    messagesDiv.innerHTML = "";
+
+    // Stop old listener
+    if (unsubscribeMessages) unsubscribeMessages();
+
+    const chatId = getChatId(user.uid, selectedUser.uid); // Use valid `user.uid`
+    const messagesRef = db.collection("chats").doc(chatId).collection("messages").orderBy("timestamp");
+
+    unsubscribeMessages = messagesRef.onSnapshot((snapshot) => {
+      messagesDiv.innerHTML = "";
+      snapshot.forEach((doc) => {
+        const msg = doc.data();
+        const div = document.createElement("div");
+        div.classList.add("message", msg.sender === user.uid ? "sent" : "received"); // Use valid `user.uid`
+
+        const time = msg.timestamp
+          ? new Date(msg.timestamp.toDate()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+          : '';
+
+        if (msg.type === "image") {
+          div.innerHTML = `
+            <div class="msg-content"><img src="${msg.content}" class="chat-image" /></div>
+            <small class="msg-time">${time}</small>
+          `;
+        } else {
+          div.innerHTML = `
+            <div class="msg-content">${msg.content}</div>
+            <small class="msg-time">${time}</small>
+          `;
+        }
+
+        messagesDiv.appendChild(div);
+        messagesDiv.scrollTop = messagesDiv.scrollHeight;
+      });
+    });
+  }
+
+  // --- Send text message ---
+  sendBtn.addEventListener("click", async () => {
+    if (!selectedUser) return alert("Select a user first!");
+    const text = messageInput.value.trim();
+    if (!text) return;
+
+    const chatId = getChatId(user.uid, selectedUser.uid); // Use valid `user.uid`
+    const messageRef = db.collection("chats").doc(chatId).collection("messages");
+
+    await messageRef.add({
+      sender: user.uid, // Use valid `user.uid`
+      receiver: selectedUser.uid,
+      type: "text",
+      content: text,
+      timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+    });
+
+    // === NEW: Update timestamps and unread flag ===
+    const timestamp = firebase.firestore.FieldValue.serverTimestamp();
+    // Update sender's doc for sorting
+    await db.collection("users").doc(user.uid).update({ // Use valid `user.uid`
+      lastMessageTimestamp: timestamp
+    });
+
+    /*
+      // --- ❌ THIS BLOCK IS REMOVED ---
+      // It causes a "permission-denied" error because you cannot
+      // write to another user's document from the client.
+      
+      // Update receiver's doc for sorting AND to set unread flag
+      await db.collection("users").doc(selectedUser.uid).update({
+        lastMessageTimestamp: timestamp,
+        ["unreadMessages." + user.uid]: true // Sets a flag like { unreadMessages: { "sender-id-123": true } }
+      });
+    */
+    // ============================================
+
+    messageInput.value = ""; // <-- This line will now work!
+  });
+
+  // --- ✅ Send message on pressing Enter ---
+  messageInput.addEventListener("keypress", (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault(); // Prevent newline
+      sendBtn.click();    // Trigger send
+    }
+  });
+
+  // --- Send image file ---
+  uploadBtn.addEventListener("click", () => fileInput.click());
+  fileInput.addEventListener("change", async (e) => {
+    const file = e.target.files[0];
+    if (!file || !selectedUser) return;
+
+    const storageRef = storage.ref(`chat_images/${Date.now()}_${file.name}`);
+    await storageRef.put(file);
+    const url = await storageRef.getDownloadURL();
+
+    const chatId = getChatId(user.uid, selectedUser.uid); // Use valid `user.uid`
+    const messageRef = db.collection("chats").doc(chatId).collection("messages");
+
+    await messageRef.add({
+      sender: user.uid, // Use valid `user.uid`
+      receiver: selectedUser.uid,
+      type: "image",
+      content: url,
+      timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+    });
+
+    // === NEW: Update timestamps and unread flag (COPIED) ===
+    const timestamp = firebase.firestore.FieldValue.serverTimestamp();
+    await db.collection("users").doc(user.uid).update({ // Use valid `user.uid`
+      lastMessageTimestamp: timestamp
+    });
+
+    /*
+      // --- ❌ THIS BLOCK IS REMOVED ---
+      // It causes a "permission-denied" error.
+
+      await db.collection("users").doc(selectedUser.uid).update({
+        lastMessageTimestamp: timestamp,
+        ["unreadMessages." + user.uid]: true
+      });
+    */
+    // ============================================
+  });
+
+  // --- Logout ---
+  logoutBtn.addEventListener("click", async () => {
+    await auth.signOut();
+    window.location.href = "index.html";
+  });
+
+  // --- Dark mode toggle ---
+  darkModeToggle.addEventListener("click", () => {
+    document.body.classList.toggle("dark");
+  });
+
+  // Sidebar toggle for mobile
+  const menuToggle = document.getElementById("menuToggle");
+  const sidebar = document.querySelector(".sidebar");
+
+  menuToggle.addEventListener("click", () => {
+    sidebar.classList.toggle("active");
+  });
+
+  // Close sidebar when clicking outside (mobile only)
+  document.addEventListener("click", (e) => {
+    if (window.innerWidth <= 768) {
+      if (!sidebar.contains(e.target) && !menuToggle.contains(e.target)) {
+        sidebar.classList.remove("active");
+      }
+    }
+  });
+
+  // --- Delete Account ---
+  deleteAccountBtn.addEventListener("click", async () => {
+    // 1. Get the current user (use the valid `user` object)
+    if (!user) return;
+
+    // 2. Confirm the action
+    const wantsToDelete = confirm(
+      "ARE YOU SURE?\n\nThis will permanently delete your account and all your data. This action cannot be undone."
+    );
+
+    if (!wantsToDelete) {
+      return; // User clicked "Cancel"
+    }
+
+    // 3. Try to delete the account
+    try {
+      // Step A: Delete the user's data from Firestore
+      await db.collection("users").doc(user.uid).delete();
+
+      // Step B: Delete the user from Firebase Authentication
+      await user.delete();
+
+      // Step C: Redirect to login page
+      alert("Your account has been permanently deleted.");
+      window.location.href = "index.html";
+
+    } catch (error) {
+      console.error("Error deleting account:", error);
+
+      if (error.code === "auth/requires-recent-login") {
+        // This is a security measure.
+        alert("This is a sensitive operation. Please log out and log back in again before deleting your account.");
+      } else {
+        alert("Error: " + error.message);
+      }
+    }
+  });
+
+  // --- Search users ---
+  searchUser.addEventListener("keyup", (e) => {
+    const searchTerm = e.target.value.toLowerCase();
+    const userItems = usersList.querySelectorAll(".user-item");
+
+    userItems.forEach((item) => {
+      const userName = item.querySelector("p").textContent.toLowerCase();
+      if (userName.includes(searchTerm)) {
+        item.style.display = "flex"; // Show the item
+      } else {
+        item.style.display = "none"; // Hide the item
+      }
+    });
+  });
+
+  // --- Mark offline on tab close ---
+  // (This was already inside, just moved to be with other listeners)
   window.addEventListener("beforeunload", async () => {
     await userRef.update({
       lastActive: firebase.firestore.FieldValue.serverTimestamp(),
     });
   });
-});
 
-// --- Open chat with a user ---
-async function openChat(user) {
-  
-  // === NEW: Mark as Read ===
-  if (currentUserData.unreadMessages && currentUserData.unreadMessages[user.uid]) {
-    // Remove the flag from our own user document
-    db.collection("users").doc(auth.currentUser.uid).update({
-      ["unreadMessages." + user.uid]: firebase.firestore.FieldValue.delete()
-    });
-  }
-  // =========================
+}); // --- END of auth.onAuthStateChanged ---
 
-  selectedUser = user;
-  document.getElementById("chatUserName").textContent = user.name;
-  document.getElementById("chatUserPhoto").src = user.photoURL;
-  messagesDiv.innerHTML = "";
-
-  // Stop old listener
-  if (unsubscribeMessages) unsubscribeMessages();
-
-  const chatId = getChatId(auth.currentUser.uid, user.uid);
-  const messagesRef = db.collection("chats").doc(chatId).collection("messages").orderBy("timestamp");
-
-  unsubscribeMessages = messagesRef.onSnapshot((snapshot) => {
-    messagesDiv.innerHTML = "";
-    snapshot.forEach((doc) => {
-      const msg = doc.data();
-      const div = document.createElement("div");
-      div.classList.add("message", msg.sender === auth.currentUser.uid ? "sent" : "received");
-
-      const time = msg.timestamp
-        ? new Date(msg.timestamp.toDate()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-        : '';
-
-      if (msg.type === "image") {
-        div.innerHTML = `
-          <div class="msg-content"><img src="${msg.content}" class="chat-image" /></div>
-          <small class="msg-time">${time}</small>
-        `;
-      } else {
-        div.innerHTML = `
-          <div class="msg-content">${msg.content}</div>
-          <small class="msg-time">${time}</small>
-        `;
-      }
-
-      messagesDiv.appendChild(div);
-      messagesDiv.scrollTop = messagesDiv.scrollHeight;
-    });
-  });
-}
-
-// --- Generate a unique chat ID between two users ---
-function getChatId(uid1, uid2) {
-  return [uid1, uid2].sort().join("_");
-}
-
-// --- Send text message ---
-sendBtn.addEventListener("click", async () => {
-  if (!selectedUser) return alert("Select a user first!");
-  const text = messageInput.value.trim();
-  if (!text) return;
-
-  const chatId = getChatId(auth.currentUser.uid, selectedUser.uid);
-  const messageRef = db.collection("chats").doc(chatId).collection("messages");
-
-  await messageRef.add({
-    sender: auth.currentUser.uid,
-    receiver: selectedUser.uid,
-    type: "text",
-    content: text,
-    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-  });
-
-  // === NEW: Update timestamps and unread flag ===
-  const timestamp = firebase.firestore.FieldValue.serverTimestamp();
-  // Update sender's doc for sorting
-  await db.collection("users").doc(auth.currentUser.uid).update({
-    lastMessageTimestamp: timestamp
-  });
-
-  /*
-    // --- ❌ THIS BLOCK IS REMOVED ---
-    // It causes a "permission-denied" error because you cannot
-    // write to another user's document from the client.
-    
-    // Update receiver's doc for sorting AND to set unread flag
-    await db.collection("users").doc(selectedUser.uid).update({
-      lastMessageTimestamp: timestamp,
-      ["unreadMessages." + auth.currentUser.uid]: true // Sets a flag like { unreadMessages: { "sender-id-123": true } }
-    });
-  */
-  // ============================================
-
-  messageInput.value = ""; // <-- This line will now work!
-});
-
-// --- ✅ Send message on pressing Enter ---
-messageInput.addEventListener("keypress", (e) => {
-  if (e.key === "Enter") {
-    e.preventDefault(); // Prevent newline
-    sendBtn.click();    // Trigger send
-  }
-});
-
-// --- Send image file ---
-uploadBtn.addEventListener("click", () => fileInput.click());
-fileInput.addEventListener("change", async (e) => {
-  const file = e.target.files[0];
-  if (!file || !selectedUser) return;
-
-  const storageRef = storage.ref(`chat_images/${Date.now()}_${file.name}`);
-  await storageRef.put(file);
-  const url = await storageRef.getDownloadURL();
-
-  const chatId = getChatId(auth.currentUser.uid, selectedUser.uid);
-  const messageRef = db.collection("chats").doc(chatId).collection("messages");
-
-  await messageRef.add({
-    sender: auth.currentUser.uid,
-    receiver: selectedUser.uid,
-    type: "image",
-    content: url,
-    timestamp: firebase.firestore.FieldValue.serverTimestamp(), // <-- ✅ FIXED (removed extra dot)
-  });
-
-  // === NEW: Update timestamps and unread flag (COPIED) ===
-  const timestamp = firebase.firestore.FieldValue.serverTimestamp();
-  await db.collection("users").doc(auth.currentUser.uid).update({
-    lastMessageTimestamp: timestamp
-  });
-
-  /*
-    // --- ❌ THIS BLOCK IS REMOVED ---
-    // It causes a "permission-denied" error.
-
-    await db.collection("users").doc(selectedUser.uid).update({
-      lastMessageTimestamp: timestamp,
-      ["unreadMessages." + auth.currentUser.uid]: true
-    });
-  */
-  // ============================================
-});
-
-// --- Logout ---
-logoutBtn.addEventListener("click", async () => {
-  await auth.signOut();
-  window.location.href = "index.html";
-});
-
-// --- Dark mode toggle ---
-darkModeToggle.addEventListener("click", () => {
-  document.body.classList.toggle("dark");
-});
-
-// Sidebar toggle for mobile
-const menuToggle = document.getElementById("menuToggle");
-const sidebar = document.querySelector(".sidebar");
-
-menuToggle.addEventListener("click", () => {
-  sidebar.classList.toggle("active");
-});
-
-// Close sidebar when clicking outside (mobile only)
-document.addEventListener("click", (e) => {
-  if (window.innerWidth <= 768) {
-    if (!sidebar.contains(e.target) && !menuToggle.contains(e.target)) {
-      sidebar.classList.remove("active");
-    }
-  }
-});
-
-// --- Delete Account ---
-deleteAccountBtn.addEventListener("click", async () => {
-  // 1. Get the current user
-  const user = auth.currentUser;
-  if (!user) return; // Should never happen if they're logged in
-
-  // 2. Confirm the action
-  // Note: Using a custom modal/popup is better than confirm()
-  // but confirm() is used here based on original code.
-  const wantsToDelete = confirm(
-    "ARE YOU SURE?\n\nThis will permanently delete your account and all your data. This action cannot be undone."
-  );
-
-  if (!wantsToDelete) {
-    return; // User clicked "Cancel"
-  }
-
-  // 3. Try to delete the account
-  try {
-    // Step A: Delete the user's data from Firestore
-    await db.collection("users").doc(user.uid).delete();
-
-    // Step B: Delete the user from Firebase Authentication
-    await user.delete();
-
-    // Step C: Redirect to login page
-    alert("Your account has been permanently deleted.");
-    window.location.href = "index.html";
-
-  } catch (error) {
-    console.error("Error deleting account:", error);
-
-    if (error.code === "auth/requires-recent-login") {
-      // This is a security measure.
-      alert("This is a sensitive operation. Please log out and log back in again before deleting your account.");
-    } else {
-      alert("Error: " + error.message); // <-- ✅ FIXED (removed extra quotes)
-    }
-  }
-});
-
-// --- Search users ---
-searchUser.addEventListener("keyup", (e) => {
-  const searchTerm = e.target.value.toLowerCase();
-  const userItems = usersList.querySelectorAll(".user-item");
-
-  userItems.forEach((item) => {
-    const userName = item.querySelector("p").textContent.toLowerCase();
-    if (userName.includes(searchTerm)) {
-      item.style.display = "flex"; // Show the item
-    } else {
-      item.style.display = "none"; // Hide the item
-    }
-  });
-});
-
-// NOTE: All the conflicting nickname functions from the end of the file
-// have been REMOVED, as their logic is already correctly
-// handled inside auth.onAuthStateChanged.
