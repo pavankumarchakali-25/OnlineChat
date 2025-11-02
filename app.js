@@ -123,8 +123,6 @@ auth.onAuthStateChanged(async (user) => {
       `;
       li.addEventListener("click", () => openChat(u));
       usersList.appendChild(li);
-    });
-  });
 });
 
 // --- Open chat with a user ---
