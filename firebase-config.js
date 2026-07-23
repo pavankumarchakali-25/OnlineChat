@@ -1,6 +1,6 @@
 // firebase-config.js (Compat version)
 const firebaseConfig = {
-  apiKey: "AIzaSyDQKaQQBwrnJ71dOLFMj_uqMqD2vlLigII",
+  apiKey: "...................",
   authDomain: "chat-application-online.firebaseapp.com",
   projectId: "chat-application-online",
   storageBucket: "chat-application-online.appspot.com",
